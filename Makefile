@@ -1,0 +1,24 @@
+NAME=nvme_tcp
+CC=gcc
+CFLAGS=-pthread -Iinclude
+
+HDR=include/types.h \
+    include/nvme.h \
+    include/transport.h \
+    include/discovery.h
+
+OBJ=obj/transport.o \
+    obj/nvme.o \
+    obj/discovery.o
+
+$(shell mkdir -p obj)
+
+obj/%.o: src/%.c $(HDR)
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+nvme_tcp: src/main.c $(OBJ)
+	$(CC) $(CFLAGS) -o $(NAME) $^
+
+clean:
+	rm -r obj/ $(NAME)
+
