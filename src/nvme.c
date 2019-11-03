@@ -18,6 +18,7 @@ u16 make_sf(u8 type, u8 status) {
 void fabric_cmd(struct nvme_properties* props, struct nvme_cmd* cmd, struct nvme_status* status) {
 	u64 val;
 	if (cmd->nsid == FCTYPE_GET_PROP) {
+		log_debug("Get property: 0x%x", cmd->cdw11);
 		switch (cmd->cdw11) {
 			case 0x0:  val = props->cap;  break;
 			case 0x8:  val = props->vs;   break;
@@ -32,6 +33,7 @@ void fabric_cmd(struct nvme_properties* props, struct nvme_cmd* cmd, struct nvme
 			status->dw1 = val >> 32;
 	}
 	else if (cmd->nsid == FCTYPE_SET_PROP) {
+		log_debug("Set property: 0x%x: 0x%x", cmd->cdw11, cmd->cdw12);
 		switch (cmd->cdw11) {
 			case 0x14: props->cc = cmd->cdw12;
 			case 0x0:

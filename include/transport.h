@@ -6,6 +6,7 @@
 #include <sys/socket.h>
 #include <stdio.h>
 
+#include "log.h"
 #include "types.h"
 #include "nvme.h"
 

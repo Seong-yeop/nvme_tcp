@@ -1,13 +1,15 @@
 NAME=nvme_tcp
 CC=gcc
-CFLAGS=-pthread -Iinclude
+CFLAGS=-pthread -Iinclude -DLOG_USE_COLOR
 
 HDR=include/types.h \
+    include/log.h \
     include/nvme.h \
     include/transport.h \
     include/discovery.h
 
-OBJ=obj/transport.o \
+OBJ=obj/log.o \
+    obj/transport.o \
     obj/nvme.o \
     obj/discovery.o
 

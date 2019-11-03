@@ -5,6 +5,7 @@
  * controller. Returns if the connection is broken.
  */
 void start_discovery_queue(sock_t socket, struct nvme_cmd* conn_cmd) {
+	log_info("Starting new discovery admin queue");
 	u16 qsize = conn_cmd->cdw11 & 0xffff;
 	u16 sqhd = 2;
 	struct nvme_properties props = {
@@ -23,35 +24,55 @@ void start_discovery_queue(sock_t socket, struct nvme_cmd* conn_cmd) {
 	};
 	int err = send_status(socket, &status);
 	if (err) {
-		printf("Failed to send response PDU\n");
+		log_warn("Failed to send response");
 		return;
 	}
 
 	// processing loop
 	struct nvme_cmd* cmd;
-	void *cmd_data, *resp_data;
 	while (1) {
-		resp_data = NULL;
 		memset(&status, 0, NVME_STATUS_LEN);
-		cmd = recv_cmd(socket, &cmd_data);
+		status.sqhd = sqhd++;
+		if (sqhd == qsize) sqhd = 0;
+		cmd = recv_cmd(socket, NULL);
 		if (!cmd) {
-			printf("Failed to receive command\n");
+			log_warn("Failed to receive command");
 			return;
 		}
 		status.cid = cmd->cid;
-		status.sqhd = sqhd++;
-		if (sqhd == qsize) sqhd = 0;
+		log_debug("Got command: 0x%x", cmd->opcode);
 
-		if (cmd->opcode == OPC_FABRICS)
-			fabric_cmd(&props, cmd, &status);
-		else
-			status.sf = make_sf(SCT_GENERIC, SC_INVALID_OPCODE);
-		
+		switch (cmd->opcode) {
+			case OPC_FABRICS:
+				fabric_cmd(&props, cmd, &status);
+				break;
+			case OPC_IDENTIFY:
+				discovery_identify(socket, cmd, &status);
+				break;
+			default:
+				status.sf = make_sf(SCT_GENERIC, SC_INVALID_OPCODE);
+		}
+
 		err = send_status(socket, &status);
 		if (err) {
-			printf("Failed to send response PDU\n");
+			log_warn("Failed to send response");
 			return;
 		}
 	}
+}
+
+/*
+ * Processes an identify command.
+ */
+void discovery_identify(sock_t socket, struct nvme_cmd* cmd, struct nvme_status* status) {
+	log_debug("Identify: CNS=0x%x, NSID=0x%x", cmd->cdw10, cmd->nsid);
+	if (cmd->cdw10 != CNS_ID_CTRL) {
+		status->sf = make_sf(SCT_GENERIC, SC_INVALID_FIELD);
+		return;
+	}
+	struct nvme_identify_ctrl id_ctrl;
+	memset(&id_ctrl, 0, NVME_ID_CTRL_LEN);
+
+	send_data(socket, cmd->cid, &id_ctrl, NVME_ID_CTRL_LEN);
 }
 

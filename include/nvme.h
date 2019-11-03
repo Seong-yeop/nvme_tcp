@@ -1,6 +1,7 @@
 #ifndef __NVME_H
 #define __NVME_H
 
+#include "log.h"
 #include "types.h"
 
 struct nvme_sgl_desc {
@@ -48,6 +49,11 @@ enum fabrics_commands {
 	FCTYPE_GET_PROP = 0x4,
 };
 
+enum identify_cns {
+	CNS_ID_NS   = 0x0,
+	CNS_ID_CTRL = 0x1,
+};
+
 enum nvme_sc_type {
 	SCT_GENERIC  = 0,
 	SCT_CMD_SPEC = 1,
@@ -70,6 +76,97 @@ struct nvme_connect_params {
 	u8   resvd2[256];
 };
 #define NVME_CONNPARAMS_LEN sizeof(struct nvme_connect_params)
+
+struct nvme_identify_ctrl {
+	u16  vid;
+	u16  ssvid;
+	char sn[20];
+	char mn[40];
+	char fr[8];
+	u8   rab;
+	u8   ieee[3];
+	u8   cmic;
+	u8   mdts;
+	u16  cntlid;
+	u32  ver;
+	u32  rtd3r;
+	u32  rtd3e;
+	u32  oaes;
+	u32  ctratt;
+	u16  rrls;
+	u8   revsd1[9];
+	u8   cntrltype;
+	char fguid[16];
+	u16  crdt1;
+	u16  crdt2;
+	u16  crdt3;
+	u8   resvd2[122];
+	u16  oacs;
+	u8   acl;
+	u8   aerl;
+	u8   frmw;
+	u8   apl;
+	u8   elpe;
+	u8   npss;
+	u8   avscc;
+	u8   apsta;
+	u16  wctemp;
+	u16  cctemp;
+	u16  mtfa;
+	u32  hmpre;
+	u32  hmmin;
+	u64  tnvmcap;
+	u64  tnvmcap_hi;
+	u64  unvmcap;
+	u64  unvmcap_hi;
+	u32  rpmbs;
+	u16  edstt;
+	u8   dsto;
+	u8   fwug;
+	u16  kas;
+	u16  hctma;
+	u16  mntmt;
+	u16  mxtmt;
+	u32  sanicap;
+	u32  hmminds;
+	u16  hmmaxd;
+	u16  nsetidmax;
+	u16  endgidmax;
+	u8   anatt;
+	u8   anacap;
+	u32  anagrpmax;
+	u32  nanagrpid;
+	u32  pels;
+	u8   resvd3[156];
+	u8   sqes;
+	u8   cqes;
+	u16  maxcmd;
+	u32  nn;
+	u16  oncs;
+	u16  fuses;
+	u8   fna;
+	u8   vwc;
+	u16  awun;
+	u16  awupf;
+	u8   nvscc;
+	u8   nwpc;
+	u16  acwu;
+	u8   resvd4[2];
+	u32  sgls;
+	u32  mnan;
+	u8   resvd5[224];
+	char subnqn[256];
+	u8   resvd6[768];
+	u32  ioccsz;
+	u32  iorcsz;
+	u16  icdoff;
+	u8   ctrattr;
+	u8   msdbd;
+	u8   resvd7[244];
+	u8   psd[1024];
+	u8   vs[1024];
+};
+#define NVME_ID_CTRL_LEN sizeof(struct nvme_identify_ctrl)
 
 struct nvme_properties {
 	u64 cap;
