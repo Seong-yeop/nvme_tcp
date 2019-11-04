@@ -14,22 +14,22 @@
  * PDU types
  */
 enum {
-	PDU_TYPE_ICREQ   = 0,
-	PDU_TYPE_ICRESP  = 1,
-	PDU_TYPE_CMD     = 4,
-	PDU_TYPE_RESP    = 5,
-	PDU_TYPE_C2HDATA = 7,
+    PDU_TYPE_ICREQ   = 0,
+    PDU_TYPE_ICRESP  = 1,
+    PDU_TYPE_CMD     = 4,
+    PDU_TYPE_RESP    = 5,
+    PDU_TYPE_C2HDATA = 7,
 };
 
 /*
  * PDU common header
  */
 struct pdu_header {
-	u8  type;
-	u8  flags;
-	u8  hlen;
-	u8  pdo;
-	u32 plen;
+    u8  type;
+    u8  flags;
+    u8  hlen;
+    u8  pdo;
+    u32 plen;
 };
 #define PDU_HDR_LEN sizeof(struct pdu_header)
 
@@ -37,11 +37,11 @@ struct pdu_header {
  * PDU-specific header for C2H data
  */
 struct psh_c2hdata {
-	u16 cccid;
-	u16 resvd1;
-	u32 datao;
-	u32 datal;
-	u32 resvd2;
+    u16 cccid;
+    u16 resvd1;
+    u32 datao;
+    u32 datal;
+    u32 resvd2;
 };
 #define PSH_C2HDATA_LEN sizeof(struct psh_c2hdata)
 
