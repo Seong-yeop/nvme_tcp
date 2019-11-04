@@ -24,7 +24,7 @@
  */
 void* handle_connection(void* client_sock) {
 	sock_t socket = *((sock_t*) client_sock);
-	int err, type;
+	int err;
 	struct nvme_cmd* cmd;
 	struct nvme_connect_params* params;
 	struct nvme_status status = {0};
@@ -43,24 +43,24 @@ void* handle_connection(void* client_sock) {
 		cmd = recv_cmd(socket, (void**) &params);
 		if (!cmd) {
 			log_warn("Failed to receive command");
-			goto exit;
+			break;
 		}
 		status.cid = cmd->cid;
-		type = 0;
 
-		// check parameters, break loop if they're valid
+		// check parameters, if valid start appropriate queue processing
 		if (cmd->opcode == OPC_FABRICS && cmd->nsid == FCTYPE_CONNECT) {
 			log_info("Connect subnqn: %s", (char*) &(params->subnqn));
 			if (!strcmp(DISCOVERY_NQN, (char*) &(params->subnqn))) {
-				type = 1;
+				start_discovery_queue(socket, cmd);
 				break;
 			}
 			else if (!strcmp(SUBSYS_NQN, (char*) &(params->subnqn))) {
-				type = 2;
-				break;
+				//start_admin_queue(socket, cmd);
+				//break;
+				//TODO: select between admin and io queues
 			}
 			else {
-				log_warn("Invalid subnqn: %s", (char*) &(params->subnqn));
+				log_warn("subnqn invalid");
 				status.sf = make_sf(SCT_CMD_SPEC, SC_CONNECT_INVALID);
 			}
 		}
@@ -73,18 +73,13 @@ void* handle_connection(void* client_sock) {
 		err = send_status(socket, &status);
 		if (err) {
 			log_warn("Failed to send status");
-			goto exit;
+			break;
 		}
 	}
-
-	// start appropriate queue processing based on connect request
-	if (type == 1)
-		start_discovery_queue(socket, cmd);
 
 exit:
 	log_warn("Closing connection and terminating thread");
 	close(socket);
-	pthread_exit(NULL);
 	return 0;
 }
 
@@ -118,7 +113,11 @@ int main(int argc, char** argv) {
 	// accept new connections
 	while (1) {
 		client = accept(sockfd, NULL, NULL);
-		pthread_create(&thread, NULL, handle_connection, &client);
+		err = pthread_create(&thread, NULL, handle_connection, &client);
+		if (err) {
+			log_error("Failed to create new thread");
+			return -1;
+		}
 		sleep(1);
 	}
 }

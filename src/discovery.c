@@ -33,7 +33,7 @@ void start_discovery_queue(sock_t socket, struct nvme_cmd* conn_cmd) {
 	while (1) {
 		memset(&status, 0, NVME_STATUS_LEN);
 		status.sqhd = sqhd++;
-		if (sqhd == qsize) sqhd = 0;
+		if (sqhd >= qsize) sqhd = 0;
 		cmd = recv_cmd(socket, NULL);
 		if (!cmd) {
 			log_warn("Failed to receive command");
@@ -70,8 +70,7 @@ void discovery_identify(sock_t socket, struct nvme_cmd* cmd, struct nvme_status*
 		status->sf = make_sf(SCT_GENERIC, SC_INVALID_FIELD);
 		return;
 	}
-	struct nvme_identify_ctrl id_ctrl;
-	memset(&id_ctrl, 0, NVME_ID_CTRL_LEN);
+	struct nvme_identify_ctrl id_ctrl = {0};
 
 	send_data(socket, cmd->cid, &id_ctrl, NVME_ID_CTRL_LEN);
 }
