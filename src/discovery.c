@@ -42,17 +42,21 @@ void start_discovery_queue(sock_t socket, struct nvme_cmd* conn_cmd) {
         status.cid = cmd->cid;
         log_debug("Got command: 0x%x", cmd->opcode);
 
-        switch (cmd->opcode) {
-            case OPC_FABRICS:
-                fabric_cmd(&props, cmd, &status);
-                break;
-            case OPC_IDENTIFY:
-                discovery_identify(socket, cmd, &status);
-                break;
-            default:
-                status.sf = make_sf(SCT_GENERIC, SC_INVALID_OPCODE);
+        if (cmd->opcode == OPC_FABRICS)
+            fabric_cmd(&props, cmd, &status);
+        else if (props.cc & 0x1) {
+            switch (cmd->opcode) {
+                case OPC_IDENTIFY:
+                    discovery_identify(socket, cmd, &status);
+                    break;
+                default:
+                    status.sf = make_sf(SCT_GENERIC, SC_INVALID_OPCODE);
+            }
         }
+        else
+            status.sf = make_sf(SCT_GENERIC, SC_COMMAND_SEQ);
 
+        free(cmd);
         err = send_status(socket, &status);
         if (err) {
             log_warn("Failed to send response");
@@ -71,6 +75,7 @@ void discovery_identify(sock_t socket, struct nvme_cmd* cmd, struct nvme_status*
         return;
     }
     struct nvme_identify_ctrl id_ctrl = {0};
+    sprintf(&(id_ctrl.mn), "Discovery");
 
     send_data(socket, cmd->cid, &id_ctrl, NVME_ID_CTRL_LEN);
 }
