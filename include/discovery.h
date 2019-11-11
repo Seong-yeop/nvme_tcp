@@ -5,6 +5,8 @@
 #include "transport.h"
 #include "nvme.h"
 
+#define DISCOVERY_NQN "nqn.2014-08.org.nvmexpress.discovery"
+
 /*
  * Starts command processing loop for the admin queue of the discovery
  * controller. Returns if the connection is broken.

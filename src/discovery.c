@@ -75,7 +75,11 @@ void discovery_identify(sock_t socket, struct nvme_cmd* cmd, struct nvme_status*
         return;
     }
     struct nvme_identify_ctrl id_ctrl = {0};
-    sprintf(&(id_ctrl.mn), "Discovery");
+    strcpy(id_ctrl.fr, "0.0.1");
+    strcpy(id_ctrl.subnqn, DISCOVERY_NQN);
+    id_ctrl.mdts = 1;
+    id_ctrl.cntlid = 1;
+    id_ctrl.ver = 0x10400;
 
     send_data(socket, cmd->cid, &id_ctrl, NVME_ID_CTRL_LEN);
 }
