@@ -7,55 +7,55 @@
  * if an error occurs.
  */
 int recv_pdu(sock_t socket, void** psh_buffer, void** data_buffer) {
-    void *psh, *data;
-    int received, len;
-    struct pdu_header hdr;
-    if (psh_buffer)
-        *psh_buffer = NULL;
-    if (data_buffer)
-        *data_buffer = NULL;
+	void *psh, *data;
+	int received, len;
+	struct pdu_header hdr;
+	if (psh_buffer)
+		*psh_buffer = NULL;
+	if (data_buffer)
+		*data_buffer = NULL;
 
-    // receive common header
-    received = recv(socket, &hdr, PDU_HDR_LEN, 0);
-    if (received < PDU_HDR_LEN) {
-        log_warn("recv_pdu failed");
-        return -1;
-    }
+	// receive common header
+	received = recv(socket, &hdr, PDU_HDR_LEN, 0);
+	if (received < PDU_HDR_LEN) {
+		log_warn("recv_pdu failed");
+		return -1;
+	}
 
-    // get PDU-specific header
-    len = hdr.hlen - PDU_HDR_LEN;
-    if (len > 0) {
-        psh = malloc(len);
-        received = recv(socket, psh, len, 0);
-        if (received < len) {
-            log_warn("recv_pdu failed");
-            free(psh);
-            return -1;
-        }
-        if (psh_buffer)
-            *psh_buffer = psh;
-        else
-            free(psh);
-    }
+	// get PDU-specific header
+	len = hdr.hlen - PDU_HDR_LEN;
+	if (len > 0) {
+		psh = malloc(len);
+		received = recv(socket, psh, len, 0);
+		if (received < len) {
+			log_warn("recv_pdu failed");
+			free(psh);
+			return -1;
+		}
+		if (psh_buffer)
+			*psh_buffer = psh;
+		else
+			free(psh);
+	}
 
-    // get data
-    len = hdr.plen - hdr.hlen;
-    if (len > 0) {
-        data = malloc(len);
-        received = recv(socket, data, len, 0);
-        if (received < len) {
-            log_warn("recv_pdu failed");
-            free(data);
-            if (psh) free(psh);
-            return -1;
-        }
-        if (data_buffer)
-            *data_buffer = data;
-        else if (data)
-            free(data);
-    }
+	// get data
+	len = hdr.plen - hdr.hlen;
+	if (len > 0) {
+		data = malloc(len);
+		received = recv(socket, data, len, 0);
+		if (received < len) {
+			log_warn("recv_pdu failed");
+			free(data);
+			if (psh) free(psh);
+			return -1;
+		}
+		if (data_buffer)
+			*data_buffer = data;
+		else if (data)
+			free(data);
+	}
 
-    return hdr.type;
+	return hdr.type;
 }
 
 /*
@@ -65,36 +65,36 @@ int recv_pdu(sock_t socket, void** psh_buffer, void** data_buffer) {
  * implied by hdr->hlen and hdr->plen. Returns 0 on succes or -1 on error.
  */
 int send_pdu(sock_t socket, struct pdu_header* hdr, void* psh, void* data) {
-    int sent, len;
+	int sent, len;
 
-    // send common header
-    sent = send(socket, hdr, PDU_HDR_LEN, 0);
-    if (sent < PDU_HDR_LEN) {
-        log_warn("send_pdu failed");
-        return -1;
-    }
-    
-    // send PDU-specific header if needed
-    len = hdr->hlen - PDU_HDR_LEN;
-    if (len > 0) {
-        sent = send(socket, psh, len, 0);
-        if (sent < len) {
-            log_warn("send_pdu failed");
-            return -1;
-        }
-    }
+	// send common header
+	sent = send(socket, hdr, PDU_HDR_LEN, 0);
+	if (sent < PDU_HDR_LEN) {
+		log_warn("send_pdu failed");
+		return -1;
+	}
+	
+	// send PDU-specific header if needed
+	len = hdr->hlen - PDU_HDR_LEN;
+	if (len > 0) {
+		sent = send(socket, psh, len, 0);
+		if (sent < len) {
+			log_warn("send_pdu failed");
+			return -1;
+		}
+	}
 
-    // send data if needed
-    len = hdr->plen - hdr->hlen;
-    if (len > 0) {
-        sent = send(socket, data, len, 0);
-        if (sent < len) {
-            log_warn("send_pdu failed");
-            return -1;
-        }
-    }
+	// send data if needed
+	len = hdr->plen - hdr->hlen;
+	if (len > 0) {
+		sent = send(socket, data, len, 0);
+		if (sent < len) {
+			log_warn("send_pdu failed");
+			return -1;
+		}
+	}
 
-    return 0;
+	return 0;
 }
 
 /*
@@ -102,23 +102,23 @@ int send_pdu(sock_t socket, struct pdu_header* hdr, void* psh, void* data) {
  * and sending back a connection response. Returns 0 on success, -1 if error.
  */
 int init_connection(sock_t socket) {
-    int type;
-    u8 psh[120] = {0};
-    struct pdu_header hdr = {
-        .type  = PDU_TYPE_ICRESP,
-        .flags = 0,
-        .hlen  = PDU_HDR_LEN + 120,
-        .pdo   = 0,
-        .plen  = PDU_HDR_LEN + 120,
-    };
+	int type;
+	u8 psh[120] = {0};
+	struct pdu_header hdr = {
+		.type  = PDU_TYPE_ICRESP,
+		.flags = 0,
+		.hlen  = PDU_HDR_LEN + 120,
+		.pdo   = 0,
+		.plen  = PDU_HDR_LEN + 120,
+	};
 
-    // receive PDU and make sure its type is ICReq
-    type = recv_pdu(socket, NULL, NULL);
-    if (type != PDU_TYPE_ICREQ)
-        return -1;
+	// receive PDU and make sure its type is ICReq
+	type = recv_pdu(socket, NULL, NULL);
+	if (type != PDU_TYPE_ICREQ)
+		return -1;
 
-    // send ICResp PDU
-    return send_pdu(socket, &hdr, psh, NULL);
+	// send ICResp PDU
+	return send_pdu(socket, &hdr, psh, NULL);
 }
 
 /*
@@ -128,17 +128,17 @@ int init_connection(sock_t socket) {
  * a buffer allocated for command data, or set to NULL if there is none.
  */
 struct nvme_cmd* recv_cmd(sock_t socket, void** data_buffer) {
-    void* cmd_buffer;
-    struct nvme_cmd* cmd;
-    int type = recv_pdu(socket, &cmd_buffer, data_buffer);
-    if (type != PDU_TYPE_CMD) {
-        if (cmd_buffer) free(cmd_buffer);
-        return NULL;
-    }
-    cmd = (struct nvme_cmd*) cmd_buffer;
-    if (data_buffer && *data_buffer)
-        log_debug("Received %d bytes of command data", cmd->sgl.length);
-    return cmd;
+	void* cmd_buffer;
+	struct nvme_cmd* cmd;
+	int type = recv_pdu(socket, &cmd_buffer, data_buffer);
+	if (type != PDU_TYPE_CMD) {
+		if (cmd_buffer) free(cmd_buffer);
+		return NULL;
+	}
+	cmd = (struct nvme_cmd*) cmd_buffer;
+	if (data_buffer && *data_buffer)
+		log_debug("Received %d bytes of command data", cmd->sgl.length);
+	return cmd;
 }
 
 /*
@@ -146,15 +146,15 @@ struct nvme_cmd* recv_cmd(sock_t socket, void** data_buffer) {
  * 0 on success or -1 if an error occurs.
  */
 int send_status(sock_t socket, struct nvme_status* status) {
-    log_debug("Sending status: 0x%x", status->sf);
-    struct pdu_header hdr = {
-        .type  = PDU_TYPE_RESP,
-        .flags = 0,
-        .hlen  = PDU_HDR_LEN + NVME_STATUS_LEN,
-        .pdo   = 0,
-        .plen  = PDU_HDR_LEN + NVME_STATUS_LEN,
-    };
-    return send_pdu(socket, &hdr, status, NULL);
+	log_debug("Sending status: 0x%x", status->sf);
+	struct pdu_header hdr = {
+		.type  = PDU_TYPE_RESP,
+		.flags = 0,
+		.hlen  = PDU_HDR_LEN + NVME_STATUS_LEN,
+		.pdo   = 0,
+		.plen  = PDU_HDR_LEN + NVME_STATUS_LEN,
+	};
+	return send_pdu(socket, &hdr, status, NULL);
 }
 
 /*
@@ -162,21 +162,21 @@ int send_status(sock_t socket, struct nvme_status* status) {
  * CID of associated command. Returns 0 on success or -1 on error.
  */
 int send_data(sock_t socket, u16 cccid, void* data, int length) {
-    struct pdu_header hdr = {
-        .type  = PDU_TYPE_C2HDATA,
-        .flags = 4, // last data PDU
-        .hlen  = PDU_HDR_LEN + PSH_C2HDATA_LEN,
-        .pdo   = 0,
-        .plen  = PDU_HDR_LEN + PSH_C2HDATA_LEN + length,
-    };
-    struct psh_c2hdata psh = {
-        .cccid  = cccid,
-        .resvd1 = 0,
-        .datao  = 0,
-        .datal  = length,
-        .resvd2 = 0,
-    };
-    log_debug("Sending %d bytes", length);
-    return send_pdu(socket, &hdr, &psh, data);
+	struct pdu_header hdr = {
+		.type  = PDU_TYPE_C2HDATA,
+		.flags = 4, // last data PDU
+		.hlen  = PDU_HDR_LEN + PSH_C2HDATA_LEN,
+		.pdo   = 0,
+		.plen  = PDU_HDR_LEN + PSH_C2HDATA_LEN + length,
+	};
+	struct psh_c2hdata psh = {
+		.cccid	= cccid,
+		.resvd1 = 0,
+		.datao	= 0,
+		.datal	= length,
+		.resvd2 = 0,
+	};
+	log_debug("Sending %d bytes", length);
+	return send_pdu(socket, &hdr, &psh, data);
 }
 
