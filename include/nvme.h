@@ -175,6 +175,32 @@ struct nvme_properties {
 	u32 csts;
 };
 
+struct nvme_discovery_log_entry {
+	u8   trtype;
+	u8   adrfam;
+	u8   subtype;
+	u8   treq;
+	u16  portid;
+	u16  cntlid;
+	u16  asqsz;
+	u8   resvd1[22];
+	char trsvcid[32];
+	u8   resvd2[192];
+	char subnqn[256];
+	char traddr[256];
+	char tsas[256];
+};
+#define NVME_DISCOVERY_LOG_ENTRY_LEN sizeof(struct nvme_discovery_log_entry)
+
+struct nvme_discovery_log_page {
+	u64 genctr;
+	u64 numrec;
+	u16 recfmt;
+	u8  resvd[1006];
+	struct nvme_discovery_log_entry entry;
+};
+#define NVME_DISCOVERY_LOG_PAGE_LEN sizeof(struct nvme_discovery_log_page)
+
 /*
  * Returns a status field dword based on the given status code and type.
  */

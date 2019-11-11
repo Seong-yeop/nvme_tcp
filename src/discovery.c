@@ -84,3 +84,12 @@ void discovery_identify(sock_t socket, struct nvme_cmd* cmd, struct nvme_status*
 	send_data(socket, cmd->cid, &id_ctrl, NVME_ID_CTRL_LEN);
 }
 
+/*
+ * Processes a get log page command.
+ */
+void discovery_get_log(sock_t socket, struct nvme_cmd* cmd, struct nvme_status* status) {
+	u8  lid = cmd->cdw10 & 0xff;
+	u32 bytes = ((cmd->cdw10 >> 16) & 0x0fff) * 4;
+	log_debug("Get log page: LID=0x%x, %d bytes", lid, bytes);
+}
+
