@@ -49,6 +49,9 @@ void start_discovery_queue(sock_t socket, struct nvme_cmd* conn_cmd) {
 				case OPC_IDENTIFY:
 					discovery_identify(socket, cmd, &status);
 					break;
+				case OPC_GET_LOG:
+					discovery_get_log(socket, cmd, &status);
+					break;
 				default:
 					status.sf = make_sf(SCT_GENERIC, SC_INVALID_OPCODE);
 			}
@@ -88,8 +91,39 @@ void discovery_identify(sock_t socket, struct nvme_cmd* cmd, struct nvme_status*
  * Processes a get log page command.
  */
 void discovery_get_log(sock_t socket, struct nvme_cmd* cmd, struct nvme_status* status) {
-	u8  lid = cmd->cdw10 & 0xff;
-	u32 bytes = ((cmd->cdw10 >> 16) & 0x0fff) * 4;
+	int size;
+	struct nvme_discovery_log_page* page;
+	u8 lid = cmd->cdw10 & 0xff;
+	int bytes = ((cmd->cdw10 >> 16) & 0x0fff) * 4 + 4;
 	log_debug("Get log page: LID=0x%x, %d bytes", lid, bytes);
+	if (lid != 0x70) {
+		status->sf = make_sf(SCT_GENERIC, SC_INVALID_FIELD);
+		return;
+	}
+
+	// allocate the right amount of space for length requested
+	if (bytes > NVME_DISCOVERY_LOG_PAGE_LEN)
+		size = bytes;
+	else
+		size = NVME_DISCOVERY_LOG_PAGE_LEN;
+	page = (struct nvme_discovery_log_page*) calloc(1, size);
+
+	// fill out the data structure
+	page->genctr = 0;
+	page->numrec = 1;
+	page->recfmt = 0;
+	page->entry.trtype = 3; // tcp
+	page->entry.adrfam = 1; // ipv4
+	page->entry.subtype = 2;
+	page->entry.treq = 0;
+	page->entry.portid = 0;
+	page->entry.cntlid = 1;
+	page->entry.asqsz = 64;
+	strcpy(page->entry.trsvcid, PORT_ASCII);
+	strcpy(page->entry.subnqn, SUBSYS_NQN);
+	strcpy(page->entry.traddr, "127.0.0.1");
+
+	send_data(socket, cmd->cid, page, bytes);
+	free(page);
 }
 

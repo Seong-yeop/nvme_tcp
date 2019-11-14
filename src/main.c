@@ -13,9 +13,6 @@
 #include "nvme.h"
 #include "discovery.h"
 
-#define PORT 4420
-#define SUBSYS_NQN "nqn.2019-11.fun.adamdjudge.tcpnvme"
-
 /*
  * Procedure launched in its own thread which takes a client connection socket
  * and establishes an NVMe transport connection, then begins the command

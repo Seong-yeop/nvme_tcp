@@ -4,6 +4,10 @@
 #include "log.h"
 #include "types.h"
 
+#define PORT 4420
+#define PORT_ASCII "4420"
+#define SUBSYS_NQN "nqn.2019-11.fun.adamdjudge.tcpnvme"
+
 struct nvme_sgl_desc {
 	u64 address;
 	u32 length;
@@ -39,6 +43,7 @@ struct nvme_status {
 #define NVME_STATUS_LEN sizeof(struct nvme_status)
 
 enum nvme_opcodes {
+	OPC_GET_LOG  = 0x2,
 	OPC_IDENTIFY = 0x6,
 	OPC_FABRICS  = 0x7f,
 };
