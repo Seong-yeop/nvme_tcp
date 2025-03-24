@@ -65,36 +65,49 @@ int recv_pdu(sock_t socket, void** psh_buffer, void** data_buffer) {
  * implied by hdr->hlen and hdr->plen. Returns 0 on succes or -1 on error.
  */
 int send_pdu(sock_t socket, struct pdu_header* hdr, void* psh, void* data) {
-	int sent, len;
+    int total_len = hdr->plen;
+    char *buffer = malloc(total_len);
+    if (!buffer) {
+        log_warn("Memory allocation failed");
+        return -1;
+    }
 
-	// send common header
-	sent = send(socket, hdr, PDU_HDR_LEN, 0);
-	if (sent < PDU_HDR_LEN) {
-		log_warn("send_pdu failed");
-		return -1;
-	}
-	
-	// send PDU-specific header if needed
-	len = hdr->hlen - PDU_HDR_LEN;
-	if (len > 0) {
-		sent = send(socket, psh, len, 0);
-		if (sent < len) {
-			log_warn("send_pdu failed");
-			return -1;
-		}
-	}
+    int offset = 0;
 
-	// send data if needed
-	len = hdr->plen - hdr->hlen;
-	if (len > 0) {
-		sent = send(socket, data, len, 0);
-		if (sent < len) {
-			log_warn("send_pdu failed");
-			return -1;
-		}
-	}
+    // copy common header
+    memcpy(buffer + offset, hdr, PDU_HDR_LEN);
+    offset += PDU_HDR_LEN;
 
-	return 0;
+    // copy PDU-specific header if needed
+    int len = hdr->hlen - PDU_HDR_LEN;
+    if (len > 0) {
+        memcpy(buffer + offset, psh, len);
+        offset += len;
+    }
+
+    // copy data if needed
+    len = hdr->plen - hdr->hlen;
+    if (len > 0) {
+        memcpy(buffer + offset, data, len);
+        offset += len;
+    }
+
+    // send everything at once
+    int sent_total = 0;
+    int sent;
+    while (sent_total < total_len) {
+        sent = send(socket, buffer + sent_total, total_len - sent_total, 0);
+        if (sent <= 0) {
+            log_warn("send_pdu failed");
+            free(buffer);
+            return -1;
+        }
+        sent_total += sent;
+    }
+
+    log_debug("Sent total length: %d", sent_total);
+    free(buffer);
+    return 0;
 }
 
 /*
