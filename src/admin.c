@@ -66,6 +66,10 @@ void start_admin_queue(sock_t socket, struct nvme_cmd* conn_cmd) {
 				case OPC_GET_LOG:
 					// discovery_get_log(socket, cmd, &status);
 					break;
+
+				case OPC_SET_FEATURES:
+					admin_set_features(socket, cmd, &status);
+					break;
 				default:
 					status.sf = make_sf(SCT_GENERIC, SC_INVALID_OPCODE);
 			}
@@ -83,9 +87,6 @@ void start_admin_queue(sock_t socket, struct nvme_cmd* conn_cmd) {
 }
 
 
-struct IdentifyActiveNamespaceListData {
-    unsigned int CNS[1024];
-};
 
 /*
  * Processes an identify command.
@@ -112,10 +113,9 @@ void admin_identify(sock_t socket, struct nvme_cmd* cmd, struct nvme_status* sta
 			break;
 		}
 		case CNS_ID_ACTIVE_NSID: {
-			struct IdentifyActiveNamespaceListData id_active_ns = {0};
+			struct identify_active_namespace_list_data id_active_ns = {0};
 			memset(&id_active_ns, 0, sizeof(id_active_ns));
-			// id_active_ns.CNS[0] = 0x1;
-			id_active_ns.CNS[0] = htole32(0x1); // NSID=1
+			id_active_ns.cns[0] = htole32(0x1); // NSID=1
 			send_data(socket, cmd->cid, &id_active_ns, sizeof(id_active_ns));
 			break;
 		}
@@ -124,4 +124,62 @@ void admin_identify(sock_t socket, struct nvme_cmd* cmd, struct nvme_status* sta
 			break;
 	}
 
+}
+
+
+#include <stdint.h>
+#include <string.h>
+
+#define FEATURE_NUMBER_OF_QUEUES 0x07
+#define FEATURE_ASYNC_EVENT_CONFIG 0x0b
+#define FEATURE_CONTROLLER_RESET 0x20
+
+void admin_set_features(sock_t socket, struct nvme_cmd* cmd, struct nvme_status* status) {
+    uint8_t fid = cmd->cdw10 & 0xff;
+    uint32_t result = 0;  
+    
+    log_debug("Set Features: FID=0x%x, CDW11=0x%x, CDW12=0x%x", fid, cmd->cdw11, cmd->cdw12);
+
+    switch (fid) {
+        case FEATURE_CONTROLLER_RESET:
+            log_debug("Controller Reset requested (FID=0x20).");
+            break;
+
+        case FEATURE_NUMBER_OF_QUEUES: {
+            // CDW11에서 Queue의 수를 설정
+            uint16_t NCQR = (cmd->cdw11 >> 16) & 0xffff; // Completion Queues Requested
+            uint16_t NSQR = cmd->cdw11 & 0xffff;         // Submission Queues Requested
+
+            log_debug("Number of Queues requested: NCQR=%u, NSQR=%u", NCQR, NSQR);
+
+            NCQR = 0x0;  // 실제 값은 (큐 개수 - 1)이므로, 0은 1개 큐를 의미
+            NSQR = 0x0;
+
+            result = ((uint32_t)NCQR << 16) | NSQR;
+
+            send_data(socket, cmd->cid, &result, sizeof(result));
+            break;
+        }
+
+        case FEATURE_ASYNC_EVENT_CONFIG: {
+            uint32_t AEC = cmd->cdw11;  // Async Event Config value
+
+            log_debug("Async Event Configuration requested: 0x%x", AEC);
+
+            if (AEC & (1U << 31)) {
+                // TODO: Async Notification 활성화 처리 구현
+                log_debug("Async Discovery Notification Enabled.");
+            }
+
+            result = AEC;
+
+            send_data(socket, cmd->cid, &result, sizeof(result));
+            break;
+        }
+
+        default:
+            log_debug("Unsupported Feature ID requested: 0x%x", fid);
+            status->sf = make_sf(SCT_GENERIC, SC_INVALID_FIELD);
+            break;
+    }
 }

@@ -45,6 +45,7 @@ struct nvme_status {
 enum nvme_opcodes {
 	OPC_GET_LOG  = 0x2,
 	OPC_IDENTIFY = 0x6,
+	OPC_SET_FEATURES = 0x9,
 	OPC_FABRICS  = 0x7f,
 };
 
@@ -82,6 +83,11 @@ struct nvme_connect_params {
 	u8   resvd2[256];
 };
 #define NVME_CONNPARAMS_LEN sizeof(struct nvme_connect_params)
+
+struct identify_active_namespace_list_data {
+    unsigned int cns[1024];
+};
+
 
 struct nvme_identify_ctrl {
 	u16  vid;
