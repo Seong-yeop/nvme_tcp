@@ -1,4 +1,20 @@
 #include "transport.h"
+#include "string.h"
+
+int recv_all(sock_t socket, void *buffer, int length) {
+	int received = 0;
+	int ret;
+
+	while (received < length) {
+		ret = recv(socket, (char*)buffer + received, length - received, 0);
+		if (ret <= 0) {
+			log_warn("recv_all failed (received=%d)", received);
+			return -1;
+		}
+		received += ret;
+	}
+	return received;
+}
 
 /* 
  * Receives complete transport-level PDU and returns its type. psh_buffer and
@@ -16,19 +32,20 @@ int recv_pdu(sock_t socket, void** psh_buffer, void** data_buffer) {
 		*data_buffer = NULL;
 
 	// receive common header
-	received = recv(socket, &hdr, PDU_HDR_LEN, 0);
-	if (received < PDU_HDR_LEN) {
-		log_warn("recv_pdu failed");
+	if (recv_all(socket, &hdr, PDU_HDR_LEN) != PDU_HDR_LEN) {
+		log_warn("recv_pdu failed (header)");
 		return -1;
 	}
 
-	// get PDU-specific header
 	len = hdr.hlen - PDU_HDR_LEN;
 	if (len > 0) {
 		psh = malloc(len);
-		received = recv(socket, psh, len, 0);
-		if (received < len) {
-			log_warn("recv_pdu failed");
+		if (!psh) {
+			log_warn("malloc failed (psh)");
+			return -1;
+		}
+		if (recv_all(socket, psh, len) != len) {
+			log_warn("recv_pdu failed (psh)");
 			free(psh);
 			return -1;
 		}
@@ -37,21 +54,24 @@ int recv_pdu(sock_t socket, void** psh_buffer, void** data_buffer) {
 		else
 			free(psh);
 	}
-
 	// get data
 	len = hdr.plen - hdr.hlen;
 	if (len > 0) {
 		data = malloc(len);
-		received = recv(socket, data, len, 0);
-		if (received < len) {
-			log_warn("recv_pdu failed");
+		if (!data) {
+			log_warn("malloc failed (data)");
+			if (psh_buffer && *psh_buffer) free(*psh_buffer);
+			return -1;
+		}
+		if (recv_all(socket, data, len) != len) {
+			log_warn("recv_pdu failed (data)");
 			free(data);
-			if (psh) free(psh);
+			if (psh_buffer && *psh_buffer) free(*psh_buffer);
 			return -1;
 		}
 		if (data_buffer)
 			*data_buffer = data;
-		else if (data)
+		else
 			free(data);
 	}
 

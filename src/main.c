@@ -12,6 +12,7 @@
 #include "transport.h"
 #include "nvme.h"
 #include "discovery.h"
+#include "admin.h"
 
 /*
  * Procedure launched in its own thread which takes a client connection socket
@@ -37,6 +38,14 @@ void* handle_connection(void* client_sock) {
 	// receive commands until valid connection request is received
 	while (1) {
 		cmd = recv_cmd(socket, (void**) &params);
+		// print cmd
+		if (cmd) {
+			log_info("Received command: opcode=0x%x, nsid=0x%x", cmd->opcode, cmd->nsid);
+		}
+		else {
+			log_warn("Failed to receive command");
+			break;
+		}
 		if (!cmd) {
 			log_warn("Failed to receive command");
 			break;
@@ -51,8 +60,8 @@ void* handle_connection(void* client_sock) {
 				break;
 			}
 			else if (!strcmp(SUBSYS_NQN, (char*) &(params->subnqn))) {
-				//start_admin_queue(socket, cmd);
-				//break;
+				start_admin_queue(socket, cmd);
+				break;
 				//TODO: select between admin and io queues
 			}
 			else {

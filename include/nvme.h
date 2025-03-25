@@ -57,6 +57,7 @@ enum fabrics_commands {
 enum identify_cns {
 	CNS_ID_NS   = 0x0,
 	CNS_ID_CTRL = 0x1,
+	CNS_ID_ACTIVE_NSID = 0x2,
 };
 
 enum nvme_sc_type {

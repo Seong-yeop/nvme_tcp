@@ -6,12 +6,14 @@ HDR=include/types.h \
     include/log.h \
     include/nvme.h \
     include/transport.h \
-    include/discovery.h
+    include/discovery.h \
+    include/admin.h
 
 OBJ=obj/log.o \
     obj/transport.o \
     obj/nvme.o \
-    obj/discovery.o
+    obj/discovery.o \
+    obj/admin.o
 
 $(shell mkdir -p obj)
 
