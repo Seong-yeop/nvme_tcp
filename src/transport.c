@@ -1,5 +1,40 @@
 #include "transport.h"
 #include "string.h"
+static const char* pdu_type_name(u8 opcode)
+{
+    // 배열 인덱스는 0x0~0x09 정도만 쓰는 예시
+    // 나머지(배열 범위 밖, 또는 미정의)는 "Unknown" 처리
+    static const char* names[16] = {
+        [0x00] = "ICReq",
+        [0x01] = "ICResp",
+        [0x02] = "H2CTermReq",
+        [0x03] = "C2HTermReq",
+        [0x04] = "CapsuleCmd",
+        [0x05] = "CapsuleResp",
+        [0x06] = "H2CData",
+        [0x07] = "C2HData",
+        // 0x08 자리 비어있음
+        [0x09] = "R2T"
+    };
+
+    // 범위 초과하거나 매핑이 없는 경우 Unknown
+    if (opcode < 16 && names[opcode] != NULL) {
+        return names[opcode];
+    }
+    return "Unknown";
+}
+
+
+void print_pdu_header(const struct pdu_header *hdr)
+{
+    if (!hdr) {
+        printf("pdu_header is NULL\n");
+        return;
+    }
+
+	log_debug("Received PDU Header: type=0x%02x (%s), flags=0x%02x, hlen=%u, pdo=%u, plen=%u", hdr->type, pdu_type_name(hdr->type), hdr->flags, (unsigned)hdr->hlen, (unsigned)hdr->pdo, (unsigned)hdr->plen);
+
+}
 
 int recv_all(sock_t socket, void *buffer, int length) {
 	int received = 0;
@@ -125,7 +160,7 @@ int send_pdu(sock_t socket, struct pdu_header* hdr, void* psh, void* data) {
         sent_total += sent;
     }
 
-    log_debug("Sent total length: %d", sent_total);
+	log_debug("Send pdu type: 0x%02x (%s), length: %d\n", hdr->type, pdu_type_name(hdr->type), sent_total);
     free(buffer);
     return 0;
 }

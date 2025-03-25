@@ -1,12 +1,26 @@
 #include "discovery.h"
 
+static const char* nvme_opcode_name(u8 opcode) {
+    switch (opcode) {
+        case 0x02: return "Get Log Page";
+        case 0x06: return "Identify";
+        case 0x09: return "Set Features";
+        case 0x0A: return "Get Features";
+        case 0x0C: return "Asynchronous Event Request";
+        case 0x18: return "Keep Alive";
+		case 0x7F: return "Fabrics";
+        default:   return "Unknown / Reserved";
+    }
+}
+
+
 /*
  * Starts command processing loop for the admin queue of the discovery
  * controller. Returns if the connection is broken.
  */
 void start_discovery_queue(sock_t socket, struct nvme_cmd* conn_cmd) {
-	log_info("Starting new discovery admin queue");
 	u16 qsize = conn_cmd->cdw11 & 0xffff;
+	log_debug("Received NVME_CONNECT command, qsize=%u", qsize);
 	u16 sqhd = 2;
 	struct nvme_properties props = {
 		.cap  = ((u64)1<<37) | (4<<24) | (1<<16) | 63,
@@ -40,7 +54,7 @@ void start_discovery_queue(sock_t socket, struct nvme_cmd* conn_cmd) {
 			return;
 		}
 		status.cid = cmd->cid;
-		log_debug("Got command: 0x%x", cmd->opcode);
+		log_debug("Got command: 0x%02x (%s)", cmd->opcode, nvme_opcode_name(cmd->opcode));
 
 		if (cmd->opcode == OPC_FABRICS)
 			fabric_cmd(&props, cmd, &status);

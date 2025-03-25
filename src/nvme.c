@@ -1,5 +1,52 @@
 #include "nvme.h"
 
+static const char* fabrics_cmd_type_name(u8 cmd)
+{
+    switch (cmd) {
+        case 0x00:
+            return "Property Set";
+        case 0x01:
+            return "Connect";
+        case 0x04:
+            return "Property Get";
+        case 0x05:
+            return "Authentication Send";
+        case 0x06:
+            return "Authentication Receive";
+        case 0x08:
+            return "Disconnect";
+        default:
+            if (cmd >= 0xC0 && cmd <= 0xFF)
+                return "Vendor Specific";
+            return "Unknown";
+    }
+    return "Unknown";
+}
+
+static const char* property_name(u32 offset) {
+    switch (offset) {
+        case 0x00: return "CAP (Controller Capabilities)";
+        case 0x08: return "VS (Version)";
+        case 0x0C: return "INTMS (Reserved)";
+        case 0x10: return "INTMC (Reserved)";
+        case 0x14: return "CC (Controller Configuration)";
+        case 0x18: return "Reserved";
+        case 0x1C: return "CSTS (Controller Status)";
+        case 0x20: return "NSSR (NVM Subsystem Reset)";
+        case 0x24: return "AQA (Reserved)";
+        case 0x28: return "ASQ (Reserved)";
+        case 0x30: return "ACQ (Reserved)";
+        case 0x38: return "CMBLOC (Reserved)";
+        case 0x3C: return "CMBSZ (Reserved)";
+        default:
+            if (offset >= 0xF00 && offset <= 0xFFF)
+                return "Vendor Specific";
+            if (offset >= 0x1000 && offset <= 0x12FF)
+                return "Fabrics Definition Area";
+            return "Unknown Property";
+    }
+}
+
 /*
  * Returns a status field dword based on the given status code and type.
  */
@@ -19,8 +66,8 @@ void fabric_cmd(struct nvme_properties* props, struct nvme_cmd* cmd, struct nvme
     u64 val;
     switch (cmd->nsid) {
         case FCTYPE_GET_PROP:
-            log_debug("Get property: 0x%x", cmd->cdw11);
-            switch (cmd->cdw11) {
+        log_debug("Get Property: offset=0x%02x (%s)", cmd->cdw11, property_name(cmd->cdw11));
+        switch (cmd->cdw11) {
                 case 0x0:  val = props->cap;  break;
                 case 0x8:  val = props->vs;   break;
                 case 0x14: val = props->cc;   break;
