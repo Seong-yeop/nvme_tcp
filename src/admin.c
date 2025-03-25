@@ -1,3 +1,5 @@
+#include <stdint.h>
+#include <string.h>
 #include "admin.h"
 #include "nvme.h"
 
@@ -87,7 +89,6 @@ void start_admin_queue(sock_t socket, struct nvme_cmd* conn_cmd) {
 }
 
 
-
 /*
  * Processes an identify command.
  */
@@ -127,8 +128,6 @@ void admin_identify(sock_t socket, struct nvme_cmd* cmd, struct nvme_status* sta
 }
 
 
-#include <stdint.h>
-#include <string.h>
 
 #define FEATURE_NUMBER_OF_QUEUES 0x07
 #define FEATURE_ASYNC_EVENT_CONFIG 0x0b
