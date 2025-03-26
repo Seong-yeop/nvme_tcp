@@ -107,11 +107,11 @@ void admin_identify(sock_t socket, struct nvme_cmd* cmd, struct nvme_status* sta
             memset(&id_ns, 0, sizeof(id_ns));
 
             /* 예시 값: 1GB (블록 크기 512바이트 기준) */
-            id_ns.nsze   = 1024 * 1024 * 1024 / 512;  // 총 논리 블록 수
+            id_ns.nsze   = 1024 * 1024 * 1024 / 4096;  // 총 논리 블록 수
             id_ns.ncap   = id_ns.nsze;                // capacity는 size와 동일
             id_ns.nuse   = id_ns.nsze;                // 사용된 블록 수 (예시)
             id_ns.nsfeat = 0;                        // 추가 기능 없음
-            id_ns.nlbaf  = 1;                        // 지원하는 LBA 포맷 수 (예: 1)
+            id_ns.nlbaf  = 9;                        // 지원하는 LBA 포맷 수 (예: 1)
             id_ns.flbas  = 0;                        // 기본 LBA 포맷 사용
             id_ns.mc     = 0;                        // 메타데이터 없음
             id_ns.dpc    = 0;
@@ -119,12 +119,14 @@ void admin_identify(sock_t socket, struct nvme_cmd* cmd, struct nvme_status* sta
             id_ns.nmic   = 0;
             memset(&(id_ns.rescap), 0, sizeof(id_ns.rescap));
             id_ns.fpi    = 0;
-            
+			id_ns.lbaf[0].ds = 12;  // 2^11 = 4k
+	
             /* 실제 NVMe Identify Namespace 응답은 NVME_ID_NS_LEN (예: 4096바이트)만큼 전송되어야 함 */
             send_data(socket, cmd->cid, &id_ns, NVME_ID_NS_LEN);
 			}
 			else{
 				log_warn("Namespace ID %d is not supported", cmd->nsid);
+				status->sf = make_sf(SCT_GENERIC, SC_INVALID_FIELD);
 			}
             break;
         }
