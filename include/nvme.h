@@ -6,7 +6,7 @@
 
 #define PORT 4420
 #define PORT_ASCII "4420"
-#define SUBSYS_NQN "nqn.2019-11.fun.adamdjudge.tcpnvme"
+#define SUBSYS_NQN "nqn.2020-20.com.thirdmartini.nvme:uuid:edbb6aab-3194-493b-bb38-732f71fe966c"
 
 struct nvme_sgl_desc {
 	u64 address;

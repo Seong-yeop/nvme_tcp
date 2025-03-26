@@ -109,7 +109,7 @@ int recv_pdu(sock_t socket, void** psh_buffer, void** data_buffer) {
 		else
 			free(data);
 	}
-
+	print_pdu_header(&hdr);
 	return hdr.type;
 }
 

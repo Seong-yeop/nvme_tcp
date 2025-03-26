@@ -81,8 +81,8 @@ void fabric_cmd(struct nvme_properties* props, struct nvme_cmd* cmd, struct nvme
                 status->dw1 = val >> 32;
             break;
         case FCTYPE_SET_PROP:
-            log_debug("Set property: 0x%x: 0x%x", cmd->cdw11, cmd->cdw12);
-            switch (cmd->cdw11) {
+        log_debug("Set Property: offset=0x%02x (%s), value=0x%08x", cmd->cdw11, property_name(cmd->cdw11), cmd->cdw12);
+        switch (cmd->cdw11) {
                 case 0x14: props->cc = cmd->cdw12;
                 case 0x0:
                 case 0x8:
