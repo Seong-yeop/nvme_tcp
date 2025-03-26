@@ -6,58 +6,6 @@
 /* Forward declaration */
 void response_keep_alive(sock_t socket, struct nvme_cmd* cmd, struct nvme_status* status);
 
-static const char* nvme_opcode_name(u8 opcode) {
-    switch (opcode) {
-        case 0x02: return "Get Log Page";
-        case 0x06: return "Identify";
-        case 0x09: return "Set Features";
-        case 0x0A: return "Get Features";
-        case 0x0C: return "Asynchronous Event Request";
-        case 0x18: return "Keep Alive";
-        case 0x7F: return "Fabrics";
-        default:   return "Unknown / Reserved";
-    }
-}
-
-static const char* feature_name(u8 fid) {
-    switch (fid) {
-        case 0x01: return "Arbitration";
-        case 0x02: return "Power Management";
-        case 0x04: return "Temperature Threshold";
-        case 0x06: return "Volatile Write Cache";
-        case 0x07: return "Number of Queues";
-        case 0x08: return "Interrupt Coalescing";
-        case 0x09: return "Interrupt Vector Configuration";
-        case 0x0B: return "Asynchronous Event Configuration";
-        case 0x0C: return "Autonomous Power State Transition";
-        case 0x0D: return "Host Memory Buffer";
-        case 0x0E: return "Timestamp";
-        case 0x0F: return "Keep Alive Timer";
-        case 0x10: return "Host Controlled Thermal Management";
-        case 0x11: return "Non-Operational Power State Config";
-        case 0x12: return "Read Recovery Level Config";
-        case 0x13: return "Predictable Latency Mode Config";
-        case 0x14: return "Predictable Latency Mode Window";
-        case 0x16: return "Host Behavior Support";
-        case 0x17: return "Sanitize Config";
-        case 0x18: return "Endurance Group Event Configuration";
-        case 0x19: return "I/O Command Set Profile";
-        case 0x1A: return "Spinup Control";
-        case 0x7D: return "Enhanced Controller Metadata";
-        case 0x7E: return "Controller Metadata";
-        case 0x7F: return "Namespace Metadata";
-        case 0x80: return "Software Progress Marker";
-        case 0x81: return "Host Identifier";
-        case 0x82: return "Reservation Notification Mask";
-        case 0x83: return "Reservation Persistence";
-        case 0x84: return "Namespace Write Protection Config";
-        default:
-            if (fid >= 0xC0 && fid <= 0xFF)
-                return "Vendor Specific";
-            return "Unknown Feature";
-    }
-}
-
 /*
  * 관리(Admin) 큐 처리 루프.
  * - 최초 연결 시 전달받은 conn_cmd를 이용하여 초기 응답(Present Completion Status 등)을 전송하고,
@@ -148,11 +96,36 @@ void start_admin_queue(sock_t socket, struct nvme_cmd* conn_cmd) {
  *   최종 상태 정보는 admin queue 루프에서 send_status()로 전송됩니다.
  */
 void admin_identify(sock_t socket, struct nvme_cmd* cmd, struct nvme_status* status) {
-    log_debug("Identify: CNS=0x%x, NSID=0x%x", cmd->cdw10, cmd->nsid);
+	log_debug("Admin Identify: CNS=0x%02x (%s), NSID=0x%08x", cmd->cdw10 & 0xFF, identify_cns_name(cmd->cdw10 & 0xFF), cmd->nsid);
 
     switch (cmd->cdw10) {
         case CNS_ID_NS: {
-            // Namespace Identify 처리 (필요 시 구현)
+            /* Namespace Identify 처리 - 더미 구현 */
+			if(cmd->nsid == 1){
+
+            struct nvme_id_ns id_ns;
+            memset(&id_ns, 0, sizeof(id_ns));
+
+            /* 예시 값: 1GB (블록 크기 512바이트 기준) */
+            id_ns.nsze   = 1024 * 1024 * 1024 / 512;  // 총 논리 블록 수
+            id_ns.ncap   = id_ns.nsze;                // capacity는 size와 동일
+            id_ns.nuse   = id_ns.nsze;                // 사용된 블록 수 (예시)
+            id_ns.nsfeat = 0;                        // 추가 기능 없음
+            id_ns.nlbaf  = 1;                        // 지원하는 LBA 포맷 수 (예: 1)
+            id_ns.flbas  = 0;                        // 기본 LBA 포맷 사용
+            id_ns.mc     = 0;                        // 메타데이터 없음
+            id_ns.dpc    = 0;
+            id_ns.dps    = 0;
+            id_ns.nmic   = 0;
+            memset(&(id_ns.rescap), 0, sizeof(id_ns.rescap));
+            id_ns.fpi    = 0;
+            
+            /* 실제 NVMe Identify Namespace 응답은 NVME_ID_NS_LEN (예: 4096바이트)만큼 전송되어야 함 */
+            send_data(socket, cmd->cid, &id_ns, NVME_ID_NS_LEN);
+			}
+			else{
+				log_warn("Namespace ID %d is not supported", cmd->nsid);
+			}
             break;
         }
         case CNS_ID_CTRL: {

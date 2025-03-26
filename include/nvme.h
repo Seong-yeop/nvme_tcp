@@ -7,6 +7,7 @@
 #define PORT 4420
 #define PORT_ASCII "4420"
 #define SUBSYS_NQN "nqn.2020-20.com.thirdmartini.nvme:uuid:edbb6aab-3194-493b-bb38-732f71fe966c"
+#define IO_NQN "nqn.2020-20.com.thirdmartini.nvme:uuid:io"
 
 struct nvme_sgl_desc {
 	u64 address;
@@ -187,7 +188,7 @@ struct nvme_properties {
 	u32 csts;
 };
 
-struct nvme_discovery_log_entry {
+struct nvmf_disc_rsp_page_entry  {
 	u8   trtype;
 	u8   adrfam;
 	u8   subtype;
@@ -195,22 +196,37 @@ struct nvme_discovery_log_entry {
 	u16  portid;
 	u16  cntlid;
 	u16  asqsz;
-	u8   resvd1[22];
+	u16  eflags;
+	u8   resv10[20];
 	char trsvcid[32];
-	u8   resvd2[192];
+	u8   resv64[192];
 	char subnqn[256];
 	char traddr[256];
-	char tsas[256];
+	union tsas {
+		char		common[256];
+		struct rdma {
+			u8	qptype;
+			u8	prtype;
+			u8	cms;
+			u8	resv3[5];
+			u16	pkey;
+			u8	resv10[246];
+		} rdma;
+		struct tcp {
+			u8	sectype;
+		} tcp;
+	} tsas;
 };
 #define NVME_DISCOVERY_LOG_ENTRY_LEN sizeof(struct nvme_discovery_log_entry)
 
 struct nvme_discovery_log_page {
-	u64 genctr;
-	u64 numrec;
-	u16 recfmt;
-	u8  resvd[1006];
-	struct nvme_discovery_log_entry entry;
+    u64 genctr;
+    u64 numrec;
+    u16 recfmt;
+    u8  resv14[1006];
+    struct nvmf_disc_rsp_page_entry entries[2];
 };
+
 #define NVME_DISCOVERY_LOG_PAGE_LEN sizeof(struct nvme_discovery_log_page)
 
 /*
@@ -222,5 +238,169 @@ u16 make_sf(u8 type, u8 status);
  * Processes fabrics commands, i.e. get and set property.
  */
 void fabric_cmd(struct nvme_properties* props, struct nvme_cmd* cmd, struct nvme_status* status);
+
+static const char* nvme_opcode_name(u8 opcode) {
+    switch (opcode) {
+        case 0x02: return "Get Log Page";
+        case 0x06: return "Identify";
+        case 0x09: return "Set Features";
+        case 0x0A: return "Get Features";
+        case 0x0C: return "Asynchronous Event Request";
+        case 0x18: return "Keep Alive";
+        case 0x7F: return "Fabrics";
+        default:   return "Unknown / Reserved";
+    }
+}
+
+static const char* feature_name(u8 fid) {
+    switch (fid) {
+        case 0x01: return "Arbitration";
+        case 0x02: return "Power Management";
+        case 0x04: return "Temperature Threshold";
+        case 0x06: return "Volatile Write Cache";
+        case 0x07: return "Number of Queues";
+        case 0x08: return "Interrupt Coalescing";
+        case 0x09: return "Interrupt Vector Configuration";
+        case 0x0B: return "Asynchronous Event Configuration";
+        case 0x0C: return "Autonomous Power State Transition";
+        case 0x0D: return "Host Memory Buffer";
+        case 0x0E: return "Timestamp";
+        case 0x0F: return "Keep Alive Timer";
+        case 0x10: return "Host Controlled Thermal Management";
+        case 0x11: return "Non-Operational Power State Config";
+        case 0x12: return "Read Recovery Level Config";
+        case 0x13: return "Predictable Latency Mode Config";
+        case 0x14: return "Predictable Latency Mode Window";
+        case 0x16: return "Host Behavior Support";
+        case 0x17: return "Sanitize Config";
+        case 0x18: return "Endurance Group Event Configuration";
+        case 0x19: return "I/O Command Set Profile";
+        case 0x1A: return "Spinup Control";
+        case 0x7D: return "Enhanced Controller Metadata";
+        case 0x7E: return "Controller Metadata";
+        case 0x7F: return "Namespace Metadata";
+        case 0x80: return "Software Progress Marker";
+        case 0x81: return "Host Identifier";
+        case 0x82: return "Reservation Notification Mask";
+        case 0x83: return "Reservation Persistence";
+        case 0x84: return "Namespace Write Protection Config";
+        default:
+            if (fid >= 0xC0 && fid <= 0xFF)
+                return "Vendor Specific";
+            return "Unknown Feature";
+    }
+}
+
+static const char* identify_cns_name(u8 cns) {
+    switch (cns) {
+        case 0x00: return "Identify Namespace";
+        case 0x01: return "Identify Controller";
+        case 0x02: return "Active Namespace ID List";
+        case 0x03: return "Namespace Identification Descriptor List";
+        case 0x04: return "NVM Set List";
+        case 0x05: return "I/O Cmd Set - Identify Namespace";
+        case 0x06: return "I/O Cmd Set - Identify Controller";
+        case 0x07: return "I/O Cmd Set - Namespace ID List";
+        case 0x08: return "I/O Cmd Set Independent Identify NS";
+        case 0x10: return "Allocated Namespace ID List";
+        case 0x11: return "Identify Allocated Namespace";
+        case 0x12: return "Controller List for NSID";
+        case 0x13: return "Controller List in Subsystem";
+        case 0x14: return "Primary Controller Capabilities";
+        case 0x15: return "Secondary Controller List";
+        case 0x16: return "Namespace Granularity List";
+        case 0x17: return "UUID List";
+        case 0x18: return "Domain List";
+        case 0x19: return "Endurance Group List";
+        case 0x1A: return "I/O Cmd Set - Allocated NSID List";
+        case 0x1B: return "I/O Cmd Set - Identify Namespace";
+        case 0x1C: return "I/O Cmd Set Data Structure";
+        default:
+            return "Reserved / Unknown CNS";
+    }
+}
+
+static const char* log_page_name(u8 lid) {
+    switch (lid) {
+        case 0x00: return "Supported Log Pages";
+        case 0x01: return "Error Information";
+        case 0x02: return "SMART / Health Information";
+        case 0x03: return "Firmware Slot Information";
+        case 0x04: return "Changed Namespace List";
+        case 0x05: return "Commands Supported and Effects";
+        case 0x06: return "Device Self-test";
+        case 0x07: return "Telemetry Host-Initiated";
+        case 0x08: return "Telemetry Controller-Initiated";
+        case 0x09: return "Endurance Group Information";
+        case 0x0A: return "Predictable Latency Per NVM Set";
+        case 0x0B: return "Predictable Latency Event Aggregate";
+        case 0x0C: return "Asymmetric Namespace Access";
+        case 0x0D: return "Persistent Event Log";
+        case 0x0F: return "Endurance Group Event Aggregate";
+        case 0x10: return "Media Unit Status";
+        case 0x11: return "Supported Capacity Configuration List";
+        case 0x12: return "Feature Identifiers Supported and Effects";
+        case 0x13: return "NVMe-MI Commands Supported and Effects";
+        case 0x14: return "Command and Feature Lockdown";
+        case 0x15: return "Boot Partition";
+        case 0x16: return "Rotational Media Information";
+        case 0x70: return "Discovery Log Page";
+        case 0x80: return "Reservation Notification";
+        case 0x81: return "Sanitize Status";
+        default:
+            if (lid >= 0xC0 && lid <= 0xFF)
+                return "Vendor Specific";
+            if (lid >= 0x82 && lid <= 0xBE)
+                return "I/O Command Set Specific";
+            return "Reserved / Unknown Log Page";
+    }
+}
+
+struct nvme_lbaf {
+    u16 ms;
+    u8 ds;
+    u8 rp;
+};
+
+
+struct nvme_id_ns {
+	u64			nsze;
+	u64			ncap;
+	u64			nuse;
+	u8			nsfeat;
+	u8			nlbaf;
+	u8			flbas;
+	u8			mc;
+	u8			dpc;
+	u8			dps;
+	u8			nmic;
+	u8			rescap;
+	u8			fpi;
+	u8			dlfeat;
+	u16			nawun;
+	u16			nawupf;
+	u16			nacwu;
+	u16			nabsn;
+	u16			nabo;
+	u16			nabspf;
+	u16			noiob;
+	u8			nvmcap[16];
+	u16			npwg;
+	u16			npwa;
+	u16			npdg;
+	u16			npda;
+	u16			nows;
+	u8			rsvd74[18];
+	u32			anagrpid;
+	u8			rsvd96[3];
+	u8			nsattr;
+	u16			nvmsetid;
+	u16			endgid;
+	u8			nguid[16];
+	u8			eui64[8];
+	struct nvme_lbaf	lbaf[64];
+	u8			vs[3712];
+};
+#define NVME_ID_NS_LEN sizeof(struct nvme_id_ns)
 
 #endif
