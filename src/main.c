@@ -64,6 +64,12 @@ void* handle_connection(void* client_sock) {
 				break;
 				//TODO: select between admin and io queues
 			}
+			else if (!strcmp(IO_NQN, (char*) &(params->subnqn))) {
+				log_warn("IO queue not implemented");
+				break;
+				//TODO: select between admin and io queues
+			}			
+
 			else {
 				log_warn("subnqn invalid");
 				status.sf = make_sf(SCT_CMD_SPEC, SC_CONNECT_INVALID);

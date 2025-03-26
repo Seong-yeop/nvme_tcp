@@ -109,7 +109,7 @@ int recv_pdu(sock_t socket, void** psh_buffer, void** data_buffer) {
 		else
 			free(data);
 	}
-
+	print_pdu_header(&hdr);
 	return hdr.type;
 }
 
@@ -214,7 +214,6 @@ struct nvme_cmd* recv_cmd(sock_t socket, void** data_buffer) {
  * 0 on success or -1 if an error occurs.
  */
 int send_status(sock_t socket, struct nvme_status* status) {
-	log_debug("Sending status: 0x%x", status->sf);
 	struct pdu_header hdr = {
 		.type  = PDU_TYPE_RESP,
 		.flags = 0,
