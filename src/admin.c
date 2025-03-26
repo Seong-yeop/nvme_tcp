@@ -130,6 +130,8 @@ void admin_identify(sock_t socket, struct nvme_cmd* cmd, struct nvme_status* sta
         }
         case CNS_ID_CTRL: {
             struct nvme_identify_ctrl id_ctrl = {0};
+			strcpy(id_ctrl.sn, "SN1234567890");      // 여기에 실제 Serial Number를 입력
+			strcpy(id_ctrl.mn, "CSL NVMe-TCP Model");     // 여기에 실제 Model 값을 입력
             strcpy(id_ctrl.fr, "0.0.1");
             strcpy(id_ctrl.subnqn, SUBSYS_NQN);
             id_ctrl.mdts   = 1;
