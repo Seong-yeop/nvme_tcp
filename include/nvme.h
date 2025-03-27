@@ -48,6 +48,7 @@ enum nvme_opcodes {
 	OPC_IDENTIFY = 0x6,
 	OPC_SET_FEATURES = 0x9,
 	OPC_FABRICS  = 0x7f,
+	OPC_KEEP_ALIVE = 0x18,
 };
 
 enum fabrics_commands {

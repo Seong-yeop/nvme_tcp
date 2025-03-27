@@ -17,7 +17,7 @@ void start_admin_queue(sock_t socket, struct nvme_cmd* conn_cmd) {
     u16 qsize = conn_cmd->cdw11 & 0xffff;
     u16 sqhd = 2;
     struct nvme_properties props = {
-        .cap  = ((u64)1 << 37) | (4 << 24) | (1 << 16) | 63,
+        .cap  = ((u64)1 << 37) | (4 << 24) | (1 << 16) | 127,
         .vs   = 0x10400,
         .cc   = 0x460001,
         .csts = 0,
@@ -69,7 +69,7 @@ void start_admin_queue(sock_t socket, struct nvme_cmd* conn_cmd) {
                 case OPC_SET_FEATURES:
                     admin_set_features(socket, cmd, &status);
                     break;
-                case 0x18:  // Keep Alive
+                case OPC_KEEP_ALIVE:  // Keep Alive
                     response_keep_alive(socket, cmd, &status);
                     break;
                 default:
