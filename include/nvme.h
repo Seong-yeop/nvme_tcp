@@ -60,6 +60,7 @@ enum identify_cns {
 	CNS_ID_NS   = 0x0,
 	CNS_ID_CTRL = 0x1,
 	CNS_ID_ACTIVE_NSID = 0x2,
+	CNS_ID_NS_LIST = 0x3,
 };
 
 enum nvme_sc_type {
@@ -89,6 +90,11 @@ struct identify_active_namespace_list_data {
     unsigned int cns[1024];
 };
 
+struct identify_namespace_descriptor {
+    u8 NIDT;          // offset: 0
+    u8 NIDL;          // offset: 1
+    u8 NID[16];       // offset: 4~19
+};
 
 struct nvme_identify_ctrl {
 	u16  vid;

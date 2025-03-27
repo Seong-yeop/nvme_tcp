@@ -17,7 +17,6 @@
  */
 void start_admin_queue(sock_t socket, struct nvme_cmd* conn_cmd);
 
-
 void admin_identify(sock_t socket, struct nvme_cmd* cmd, struct nvme_status* status);
 
 void admin_set_features(sock_t socket, struct nvme_cmd* cmd, struct nvme_status* status);

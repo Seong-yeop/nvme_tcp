@@ -19,7 +19,7 @@ void start_admin_queue(sock_t socket, struct nvme_cmd* conn_cmd) {
     struct nvme_properties props = {
         .cap  = ((u64)1 << 37) | (4 << 24) | (1 << 16) | 63,
         .vs   = 0x10400,
-        .cc   = 0,
+        .cc   = 0x460001,
         .csts = 0,
     };
 
@@ -138,20 +138,30 @@ void admin_identify(sock_t socket, struct nvme_cmd* cmd, struct nvme_status* sta
             strcpy(id_ctrl.subnqn, SUBSYS_NQN);
             id_ctrl.mdts   = 1;
             id_ctrl.cntlid = 1;
-            id_ctrl.maxcmd = 11;
+            id_ctrl.maxcmd = 128;
             id_ctrl.nn     = 1;
             id_ctrl.ver    = 0x10400;
             id_ctrl.kas    = 0x1111;
+			id_ctrl.sqes = 0x66;
+			id_ctrl.cqes = 0x44;
+			id_ctrl.sgls = 1;
             send_data(socket, cmd->cid, &id_ctrl, NVME_ID_CTRL_LEN);
             break;
         }
         case CNS_ID_ACTIVE_NSID: {
             struct identify_active_namespace_list_data id_active_ns = {0};
-            memset(&id_active_ns, 0, sizeof(id_active_ns));
             id_active_ns.cns[0] = htole32(0x1); // NSID=1
             send_data(socket, cmd->cid, &id_active_ns, sizeof(id_active_ns));
             break;
         }
+		case CNS_ID_NS_LIST: {
+			struct identify_namespace_descriptor id_ns_desc = {0};
+			id_ns_desc.NIDT = htole32(0x3);
+			id_ns_desc.NIDL = htole32(16);
+			memcpy(id_ns_desc.NID, SUBSYS_NQN, sizeof(SUBSYS_NQN));
+			send_data(socket, cmd->cid, &id_ns_desc, sizeof(id_ns_desc));
+			break;
+		}
         default:
             status->sf = make_sf(SCT_GENERIC, SC_INVALID_FIELD);
             break;

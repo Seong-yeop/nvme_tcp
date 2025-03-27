@@ -1,5 +1,8 @@
 #include "transport.h"
-#include "string.h"
+#include <stdint.h>
+#include <endian.h>
+#include <string.h>
+
 static const char* pdu_type_name(u8 opcode)
 {
     // 배열 인덱스는 0x0~0x09 정도만 쓰는 예시
@@ -172,6 +175,10 @@ int send_pdu(sock_t socket, struct pdu_header* hdr, void* psh, void* data) {
 int init_connection(sock_t socket) {
 	int type;
 	u8 psh[120] = {0};
+
+	uint32_t maxh2cdata = 4096;
+    *(uint32_t*)(psh + 4) = htole32(maxh2cdata);
+
 	struct pdu_header hdr = {
 		.type  = PDU_TYPE_ICRESP,
 		.flags = 0,
