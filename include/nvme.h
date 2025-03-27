@@ -51,6 +51,12 @@ enum nvme_opcodes {
 	OPC_KEEP_ALIVE = 0x18,
 };
 
+enum nvme_io_commands {
+	IO_CMD_FLUSH = 0x0,
+	IO_CMD_WRITE = 0x1,
+	IO_CMD_READ  = 0x2,
+};
+
 enum fabrics_commands {
 	FCTYPE_SET_PROP = 0x0,
 	FCTYPE_CONNECT	= 0x1,
@@ -75,6 +81,12 @@ enum nvme_sc {
 	SC_INVALID_FIELD   = 0x2,
 	SC_COMMAND_SEQ     = 0xC,
 	SC_CONNECT_INVALID = 0x82,
+};
+
+enum nvme_log {
+	LOG_HEALTH_INFO = 0x2,
+	LOG_COMMANDS_SUPPORTED = 0x5,
+	LOG_DISCOVERY = 0x70,
 };
 
 struct nvme_connect_params {
@@ -233,8 +245,35 @@ struct nvme_discovery_log_page {
     u8  resv14[1006];
     struct nvmf_disc_rsp_page_entry entries[2];
 };
-
 #define NVME_DISCOVERY_LOG_PAGE_LEN sizeof(struct nvme_discovery_log_page)
+
+// struct nvme_smart_log {
+// 	u8			critical_warning;
+// 	u8			temperature[2];
+// 	u8			avail_spare;
+// 	u8			spare_thresh;
+// 	u8			percent_used;
+// 	u8			endu_grp_crit_warn_sumry;
+// 	u8			rsvd7[25];
+// 	u8			data_units_read[16];
+// 	u8			data_units_written[16];
+// 	u8			host_reads[16];
+// 	u8			host_writes[16];
+// 	u8			ctrl_busy_time[16];
+// 	u8			power_cycles[16];
+// 	u8			power_on_hours[16];
+// 	u8			unsafe_shutdowns[16];
+// 	u8			media_errors[16];
+// 	u8			num_err_log_entries[16];
+// 	u32			warning_temp_time;
+// 	u32			critical_comp_time;
+// 	u16			temp_sensor[8];
+// 	u32			thm_temp1_trans_count;
+// 	u32			thm_temp2_trans_count;
+// 	u32			thm_temp1_total_time;
+// 	u32			thm_temp2_total_time;
+// 	u8			rsvd232[280];
+// };
 
 /*
  * Returns a status field dword based on the given status code and type.

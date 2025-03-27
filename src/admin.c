@@ -3,6 +3,7 @@
 #include "admin.h"
 #include "nvme.h"
 
+
 /* Forward declaration */
 void response_keep_alive(sock_t socket, struct nvme_cmd* cmd, struct nvme_status* status);
 
@@ -106,7 +107,7 @@ void admin_identify(sock_t socket, struct nvme_cmd* cmd, struct nvme_status* sta
             struct nvme_id_ns id_ns;
             memset(&id_ns, 0, sizeof(id_ns));
 
-            /* 예시 값: 1GB (블록 크기 512바이트 기준) */
+            /* LBA: 1GiB (Block size: 4096 Bytes) */
             id_ns.nsze   = 1024 * 1024 * 1024 / 4096;  // 총 논리 블록 수
             id_ns.ncap   = id_ns.nsze;                // capacity는 size와 동일
             id_ns.nuse   = id_ns.nsze;                // 사용된 블록 수 (예시)
@@ -235,4 +236,33 @@ void admin_set_features(sock_t socket, struct nvme_cmd* cmd, struct nvme_status*
 void response_keep_alive(sock_t socket, struct nvme_cmd* cmd, struct nvme_status* status) {
     log_debug("Keep Alive requested.");
     /* 특별한 처리 없이 상태(status)는 그대로 유지 */
+}
+
+void admin_get_log(sock_t socket, struct nvme_cmd* cmd, struct nvme_status* status) {
+    int size;
+    struct nvme_discovery_log_page* page;
+    u8 lid = cmd->cdw10 & 0xff;
+    int bytes = ((cmd->cdw10 >> 16) & 0x0fff) * 4 + 4;
+    log_debug("Discovery Get log page: LID=0x%02x (%s), %d bytes", lid, log_page_name(lid), bytes);
+
+    if (bytes > NVME_DISCOVERY_LOG_PAGE_LEN)
+        size = bytes;
+    else
+        size = NVME_DISCOVERY_LOG_PAGE_LEN;
+
+    switch (lid) {
+        case LOG_HEALTH_INFO: {
+            // Smart
+
+            // send_data(socket, cmd->cid, page, bytes);
+            break;
+        }
+        case LOG_COMMANDS_SUPPORTED: {
+            // Supported Commands
+            break;
+        }
+    }
+
+    free(page);
+
 }

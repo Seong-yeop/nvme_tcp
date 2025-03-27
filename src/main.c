@@ -13,6 +13,8 @@
 #include "nvme.h"
 #include "discovery.h"
 #include "admin.h"
+#include "io.h"
+
 
 /*
  * Procedure launched in its own thread which takes a client connection socket
@@ -55,14 +57,24 @@ void* handle_connection(void* client_sock) {
 		// check parameters, if valid start appropriate queue processing
 		if (cmd->opcode == OPC_FABRICS && cmd->nsid == FCTYPE_CONNECT) {
 			log_info("Connect subnqn: %s", (char*) &(params->subnqn));
+			log_info("cmd opcode=0x%x, nsid=0x%x, qid=%u, subnqn=[%s]", 
+				cmd->opcode, cmd->nsid, cmd->cdw10 & 0xffff, params->subnqn);
+
 			if (!strcmp(DISCOVERY_NQN, (char*) &(params->subnqn))) {
 				start_discovery_queue(socket, cmd);
 				break;
 			}
 			else if (!strcmp(SUBSYS_NQN, (char*) &(params->subnqn))) {
-				start_admin_queue(socket, cmd);
+				
+				u16 qid = (cmd->cdw10 >> 16) & 0xffff;
+				log_debug("qid: %d", qid);
+				if (qid == 0) {
+					start_admin_queue(socket, cmd);
+				}
+				else {
+					start_io_queue(socket, cmd);
+				}
 				break;
-				//TODO: select between admin and io queues
 			}
 			else if (!strcmp(IO_NQN, (char*) &(params->subnqn))) {
 				log_warn("IO queue not implemented");
