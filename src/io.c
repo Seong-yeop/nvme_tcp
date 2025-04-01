@@ -33,19 +33,21 @@ void start_io_queue(sock_t socket, struct nvme_cmd* conn_cmd) {
     }
 
     struct nvme_cmd* cmd;
+    void *data_buffer;
+
     while (1) {
         /* 상태 구조체 초기화 및 큐 헤드 업데이트 */
         memset(&status, 0, sizeof(status));
         status.sqhd = sqhd++;
         if (sqhd >= qsize)
             sqhd = 0;
-        cmd = recv_cmd(socket, NULL);
+        cmd = recv_cmd(socket, &data_buffer);
         if (!cmd) {
             log_warn("Failed to receive command");
             return;
         }
         status.cid = cmd->cid;
-        log_debug("Got command: 0x%02x (%s)", cmd->opcode, nvme_opcode_name(cmd->opcode));
+        log_debug("Got command: 0x%02x (%s)", cmd->opcode, nvme_io_opcode_name(cmd->opcode));
 
         if (cmd->opcode == OPC_FABRICS) {
             /* Fabrics 전용 처리 */
@@ -56,6 +58,7 @@ void start_io_queue(sock_t socket, struct nvme_cmd* conn_cmd) {
                 case IO_CMD_FLUSH:
                     break;
                 case IO_CMD_WRITE:
+                    io_cmd_write(socket, cmd, &status, &data_buffer);
                     break;
                 case IO_CMD_READ:
                     io_cmd_read(socket, cmd, &status);
@@ -92,4 +95,21 @@ void io_cmd_read(sock_t socket, struct nvme_cmd* cmd, struct nvme_status* status
 
 
     free(buffer);
+}
+
+
+void io_cmd_write(sock_t socket, struct nvme_cmd* cmd, struct nvme_status* status, void** data_buffer) {
+
+    log_debug("IO Write command");
+    u64 lba = cmd->cdw10 | ((u64)cmd->cdw11 << 32);
+    u64 lba_count = cmd->cdw12 + 1;
+    u32 payload_len = lba_count * 4096;
+
+    log_debug("IO Write command: LBA=0x%lx, LBA Count=%lu, Payload Length=%u", lba, lba_count, payload_len);
+
+    for (u32 i = 0; i < payload_len; i++) {
+        log_debug("Data[%u]: 0x%02x", i, ((char*)(*data_buffer))[i]);
+    }
+
+    free(*data_buffer);
 }

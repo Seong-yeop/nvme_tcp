@@ -137,7 +137,7 @@ void admin_identify(sock_t socket, struct nvme_cmd* cmd, struct nvme_status* sta
 			strcpy(id_ctrl.mn, "CSL NVMe-TCP Model");     // 여기에 실제 Model 값을 입력
             strcpy(id_ctrl.fr, "0.0.1");
             strcpy(id_ctrl.subnqn, SUBSYS_NQN);
-            id_ctrl.mdts   = 1;
+            id_ctrl.mdts   = 11;
             id_ctrl.cntlid = 1;
             id_ctrl.maxcmd = 128;
             id_ctrl.nn     = 1;

@@ -298,6 +298,19 @@ static const char* nvme_opcode_name(u8 opcode) {
     }
 }
 
+static const char* nvme_io_opcode_name(u8 opcode) {
+	switch (opcode) {
+		case 0x00: return "Flush";
+		case 0x01: return "Write";
+		case 0x02: return "Read";
+		case 0x04: return "Write Uncorrectable";
+		case 0x08: return "Compare";
+		case 0x09: return "Write Zeroes";
+		case 0x0A: return "Dataset Management";
+		default:   return "Unknown / Reserved";
+	}
+}
+
 static const char* feature_name(u8 fid) {
     switch (fid) {
         case 0x01: return "Arbitration";

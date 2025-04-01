@@ -94,6 +94,7 @@ int recv_pdu(sock_t socket, void** psh_buffer, void** data_buffer) {
 	}
 	// get data
 	len = hdr.plen - hdr.hlen;
+	log_debug("PDU length: %d, PDU-specific header length: %d, data length: %d", hdr.plen, hdr.hlen, len);
 	if (len > 0) {
 		data = malloc(len);
 		if (!data) {
@@ -176,8 +177,9 @@ int init_connection(sock_t socket) {
 	int type;
 	u8 psh[120] = {0};
 
-	uint32_t maxh2cdata = 4096;
+	uint32_t maxh2cdata = 1 << 16;
     *(uint32_t*)(psh + 4) = htole32(maxh2cdata);
+
 
 	struct pdu_header hdr = {
 		.type  = PDU_TYPE_ICRESP,
