@@ -84,7 +84,7 @@ void io_cmd_read(sock_t socket, struct nvme_cmd* cmd, struct nvme_status* status
 
     log_debug("IO Read command");
     u64 lba = cmd->cdw10 | ((u64)cmd->cdw11 << 32);
-    u64 lba_count = (cmd->cdw12 & 0xFF) + 1;
+    u64 lba_count = (cmd->cdw12 & 0xFFFF) + 1;
     u32 payload_len = lba_count * 4096;
 
     log_debug("IO Read command: LBA=0x%lx, LBA Count=%lu, Payload Length=%u", lba, lba_count, payload_len);
@@ -102,7 +102,7 @@ void io_cmd_write(sock_t socket, struct nvme_cmd* cmd, struct nvme_status* statu
 
     log_debug("IO Write command");
     u64 lba = cmd->cdw10 | ((u64)cmd->cdw11 << 32);
-    u64 lba_count = (cmd->cdw12 & 0xFF) + 1;
+    u64 lba_count = (cmd->cdw12 & 0xFFFF) + 1;
     u32 payload_len = lba_count * 4096;
 
     log_debug("IO Write command: LBA=0x%lx, LBA Count=%lu, Payload Length=%u", lba, lba_count, payload_len);
